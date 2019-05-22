@@ -314,7 +314,10 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
-    return;
+    pid_t pid;
+    if (!(pid = fgpid(jobs)));
+    struct job_t *job = getjobpid(jobs, pid);
+    kill(job, sig);
 }
 
 /* 
@@ -324,7 +327,10 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-    return;
+    pid_t pid;
+    if (!(pid = fgpid(jobs)));
+    struct job_t *job = getjobpid(jobs, pid);
+    kill(job, sig);
 }
 
 /*
@@ -334,7 +340,10 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
-    return;
+    pid_t pid;
+    if (!(pid = fgpid(jobs)));
+    struct job_t *job = getjobpid(jobs, pid);
+    kill(job, sig);
 }
 
 /*********************
