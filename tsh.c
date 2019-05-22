@@ -179,7 +179,7 @@ void eval(char *cmdline)
         if (!(pid = fork())) { // child
             if (execve(argv[0], argv, environ) < 0) {
                 printf("%s - command not found\n", argv[0]);
-                exit(0);
+                return;
             }
         }
         if (!bg) {
@@ -314,10 +314,9 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
-    pid_t pid;
-    if (!(pid = fgpid(jobs)));
-    struct job_t *job = getjobpid(jobs, pid);
-    kill(job, sig);
+//  pid_t pid;
+//  if (!(pid = fgpid(jobs)));
+//  kill(pid, sig);
 }
 
 /* 
@@ -327,10 +326,9 @@ void sigchld_handler(int sig)
  */
 void sigint_handler(int sig) 
 {
-    pid_t pid;
-    if (!(pid = fgpid(jobs)));
-    struct job_t *job = getjobpid(jobs, pid);
-    kill(job, sig);
+//  pid_t pid;
+//  if (!(pid = fgpid(jobs)));
+//  kill(pid, sig);
 }
 
 /*
@@ -340,10 +338,9 @@ void sigint_handler(int sig)
  */
 void sigtstp_handler(int sig) 
 {
-    pid_t pid;
-    if (!(pid = fgpid(jobs)));
-    struct job_t *job = getjobpid(jobs, pid);
-    kill(job, sig);
+//  pid_t pid;
+//  if (!(pid = fgpid(jobs)));
+//  kill(pid, sig);
 }
 
 /*********************
