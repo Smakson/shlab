@@ -2,6 +2,7 @@
  * tsh - A tiny shell program with job control
  * 
  * Matthias Hasler - matthias.hasler@polytechnique.edu
+ * Miha Smaka      - miha.smaka@polytechnique.edu
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,37 +167,26 @@ int main(int argc, char **argv)
 void eval(char *cmdline) 
 {
     char *argv[MAXARGS];
-    int is_bg = parseline(cmdline,argv);
+    char buf[MAXLINE];
+    int bg;
+    pid_t pid;
+
+    strcpy(buf, cmdline);
+    bg = parseline(buf, argv);
+    if (argv[0] == NULL) return; // cmd was empty
 
     if (!builtin_cmd(argv)) { // not builtin command
-        if (is_bg) {
-            // TODO actually in background
-            int status;
-            pid_t pid = fork();
-            switch (pid) {
-                case -1:
-                    perror("fork");
-                    exit(1);
-                case 0:
-                    execve(argv[0],argv,environ);
-                    exit(2);
-                default:
-                    wait(&status);
-            }
-        } else {
-            int status;
-            pid_t pid = fork();
-            switch (pid) {
-                case -1:
-                    perror("fork");
-                    exit(1);
-                case 0:
-                    execve(argv[0],argv,environ);
-                    exit(2);
-                default:
-                    wait(&status);
+        if (!(pid = fork())) { // child
+            if (execve(argv[0], argv, environ) < 0) {
+                printf("%s - command not found\n", argv[0]);
+                exit(0);
             }
         }
+        if (!bg) {
+            int status;
+            if (waitpid(pid, &status, 0) < 0)
+                unix_error("waitfg: waitpid error");
+        } else printf("%d %s", pid, cmdline);
     }
 }
 
