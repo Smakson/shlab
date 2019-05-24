@@ -353,10 +353,10 @@ void sigint_handler(int sig)
 {   
     pid_t pid = fgpid(jobs);
     sigset_t mask_all, prev_all;
-    Sigfillset(&mask_all);
-    Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+    sigfillset(&mask_all);
+    sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
     deletejob(&jobs, pid);
-    Sigprocmask(SIG_SETMASK, &prev_all, NULL);
+    sigprocmask(SIG_SETMASK, &prev_all, NULL);
     kill(pid, sig);
 }
 
@@ -369,10 +369,10 @@ void sigtstp_handler(int sig)
 {
     pid_t pid = fgpid(&jobs);
     sigset_t mask_all, prev_all;
-    Sigfillset(&mask_all);
-    Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+    sigfillset(&mask_all);
+    sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
     deletejob(&jobs, pid);
-    Sigprocmask(SIG_SETMASK, &prev_all, NULL);
+    sigprocmask(SIG_SETMASK, &prev_all, NULL);
     kill(pid, sig);
 }
 
