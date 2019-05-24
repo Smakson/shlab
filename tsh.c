@@ -195,7 +195,7 @@ void eval(char *cmdline)
             addjob(pid, &jobs, FG, cmdline);
             Sigprocmask(SIG_SETMASK, &prev_one, NULL);
             waitfg(pid);
-            
+
         } 
         
         else {
@@ -211,7 +211,7 @@ void eval(char *cmdline)
  * parseline - Parse the command line and build the argv array.
  * 
  * Characters enclosed in single quotes are treated as a single
- * argument.  Return true if the user has requested a BG job, false if
+ * argument.  Return tru/bine if the user has requested a BG job, false if
  * the user has requested a FG job.  
  */
 int parseline(const char *cmdline, char **argv) 
@@ -356,7 +356,7 @@ void sigint_handler(int sig)
     Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
     deletejob(&jobs, pid);
     Sigprocmask(SIG_SETMASK, &prev_all, NULL);
-    kill(-pid, sig);
+    kill(pid, sig);
 }
 
 /*
@@ -370,7 +370,7 @@ void sigtstp_handler(int sig)
     Sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
     deletejob(&jobs, pid);
     Sigprocmask(SIG_SETMASK, &prev_all, NULL);
-    kill(-pid, sig);
+    kill(pid, sig);
 }
 
 /*********************
