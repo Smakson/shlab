@@ -308,13 +308,8 @@ void do_bgfg(char **argv)
     if (!strcmp(argv[0],"bg")) { 
         sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
         
-        if (jp->state == FG) {
-            jp->state = ST;
-            printf("Job [%d] (%d) stopped by signal %d\n", jp->jid, jp->pid, SIGSTOP);        
-            kill(jp->pid, SIGSTOP);
-        }
-        else {
-            kill(jp->pid, SIGCONT);
+        if (jp->state == ST) {
+            kill(-(jp->pid), SIGCONT);
             jp->state = BG;
         }
         sigprocmask(SIG_SETMASK, &prev_all, NULL);
@@ -324,16 +319,18 @@ void do_bgfg(char **argv)
         sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
 
         if (jp->state == BG) {
-            jp->state = ST;
-            printf("Job [%d] (%d) stopped by signal %d\n", jp->jid, jp->pid, SIGSTOP);        
-            kill(jp->pid, SIGSTOP);
+            jp->state = FG;
+            sigprocmask(SIG_SETMASK, &prev_all, NULL);
+            waitfg(jp->pid);
+
         }
         else{
             jp->state = FG;
-            kill(jp->pid, SIGCONT);
+            kill(-(jp->pid), SIGCONT);
+            sigprocmask(SIG_SETMASK, &prev_all, NULL);
             waitfg(jp->pid);
         }
-        sigprocmask(SIG_SETMASK, &prev_all, NULL);
+        
     }
 }
 
