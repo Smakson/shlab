@@ -58,8 +58,8 @@ struct job_t jobs[MAXJOBS]; /* The job list */
 
 /* Here are the functions that you will implement */
 void eval(char *cmdline);
-int builtin_cmd(char **argv);
-void do_bgfg(char **argv);
+int builtin_cmd(char **argv, int argc);
+void do_bgfg(char **argv, int argc);
 void waitfg(pid_t pid);
 
 void sigchld_handler(int sig);
@@ -67,7 +67,7 @@ void sigtstp_handler(int sig);
 void sigint_handler(int sig);
 
 /* Here are helper routines that we've provided for you */
-int parseline(const char *cmdline, char **argv); 
+int parseline(const char *cmdline, char **argv, int* argc); 
 void sigquit_handler(int sig);
 
 void clearjob(struct job_t *job);
@@ -169,21 +169,22 @@ int main(int argc, char **argv)
 void eval(char *cmdline) 
 {
     char *argv[MAXARGS];
+    int argc = 1; 
     char buf[MAXLINE];
     int bg;
     pid_t pid;
     sigset_t mask_all, mask_one, prev_one;
     strcpy(buf, cmdline);
-    bg = parseline(buf, argv);
+    bg = parseline(buf, argv, &argc);
     if (argv[0] == NULL) return; // cmd was empty
 
-    if (!builtin_cmd(argv)) { // not builtin command
+    if (!builtin_cmd(argv, argc)) { // not builtin command
         sigfillset(&mask_all);
         sigemptyset(&mask_one);
         sigaddset(&mask_one, SIGCHLD); 
 
         sigprocmask(SIG_BLOCK, &mask_one, &prev_one);
-        if (!(pid = Fork())) { // child
+        if ((pid = Fork()) == 0) { // child
             setpgid(0, 0);
             sigprocmask(SIG_SETMASK, &prev_one, NULL);
             if (execve(argv[0], argv, environ) < 0) {
@@ -191,11 +192,11 @@ void eval(char *cmdline)
             }
             exit(0);
         }
+        
+        sigprocmask(SIG_SETMASK, &prev_one, NULL);
 
         if (!bg) {//parent
-            sigprocmask(SIG_BLOCK, &mask_all, NULL);
             addjob(jobs, pid, FG, cmdline);
-            sigprocmask(SIG_SETMASK, &prev_one, NULL);
             waitfg(pid);
             return;
         }
@@ -217,12 +218,12 @@ void eval(char *cmdline)
  * argument.  Return tru/bine if the user has requested a BG job, false if
  * the user has requested a FG job.  
  */
-int parseline(const char *cmdline, char **argv) 
+int parseline(const char *cmdline, char **argv, int* argc) 
 {
     static char array[MAXLINE]; /* holds local copy of command line */
     char *buf = array;          /* ptr that traverses command line */
     char *delim;                /* points to first space delimiter */
-    int argc;                   /* number of args */
+                                 /* number of args */
     int bg;                     /* background job? */
 
     strcpy(buf, cmdline);
@@ -231,7 +232,7 @@ int parseline(const char *cmdline, char **argv)
         buf++;
 
     /* Build the argv list */
-    argc = 0;
+    *argc = 0;
     if (*buf == '\'') {
         buf++;
         delim = strchr(buf, '\'');
@@ -241,7 +242,7 @@ int parseline(const char *cmdline, char **argv)
     }
 
     while (delim) {
-        argv[argc++] = buf;
+        argv[(*argc)++] = buf;
         *delim = '\0';
         buf = delim + 1;
         while (*buf && (*buf == ' ')) /* ignore spaces */
@@ -255,14 +256,14 @@ int parseline(const char *cmdline, char **argv)
             delim = strchr(buf, ' ');
         }
     }
-    argv[argc] = NULL;
+    argv[*argc] = NULL;
 
-    if (argc == 0)  /* ignore blank line */
+    if (*argc == 0)  /* ignore blank line */
         return 1;
 
     /* should the job run in the background? */
-    if ((bg = (*argv[argc-1] == '&')) != 0) {
-        argv[--argc] = NULL;
+    if ((bg = (*argv[(*argc)-1] == '&')) != 0) {
+        argv[--(*argc)] = NULL;
     }
     return bg;
 }
@@ -271,7 +272,7 @@ int parseline(const char *cmdline, char **argv)
  * builtin_cmd - If the user has typed a built-in command then execute
  *    it immediately.  
  */
-int builtin_cmd(char **argv) 
+int builtin_cmd(char **argv, int argc) 
 {
     if (!strcmp(argv[0],"quit")) exit(0);
     if (!strcmp(argv[0],"jobs")) {
@@ -279,7 +280,7 @@ int builtin_cmd(char **argv)
         return 1;
     }
     if (!strcmp(argv[0],"bg") || !strcmp(argv[0],"fg")) {
-        do_bgfg(argv);
+        do_bgfg(argv, argc);
         return 1;
     }
     return 0; /* not a builtin command */
@@ -288,22 +289,46 @@ int builtin_cmd(char **argv)
 /* 
  * do_bgfg - Execute the builtin bg and fg commands
  */
-void do_bgfg(char **argv) 
+void do_bgfg(char **argv, int argc) 
 {   
     sigset_t mask_all, prev_all;
     sigfillset(&mask_all);
     struct job_t* jp;
-    if (argv[1][0] == '%') {
-        int jid = atoi(argv[1] + 1);
-        jp = getjobjid(jobs,jid);
-    } else {
-        pid_t pid = atoi(argv[1]);
-        jp = getjobpid(jobs,pid);
-    }
-    if (jp==NULL) {
-        printf("The job does not exist.\n");
+
+    if (argc == 1) {
+        printf("%s command requires PID or %%jobid argument\n", argv[0]);
         return;
     }
+
+    if (argv[1][0] == '%') {
+        int jid = atoi(argv[1] + 1);
+        if (jid == 0) {
+            printf("%s: argument must be PID or %%jobid\n", argv[0]);
+            return;
+        }
+
+        jp = getjobjid(jobs,jid);
+
+        if (jp==NULL) {
+            printf("%%%d: No such job\n", jid);
+            return;
+        }
+    } 
+    
+
+    else {
+        pid_t pid = atoi(argv[1]);
+        if (pid == 0) {
+            printf("%s: argument must be PID or %%jobid\n", argv[0]);
+            return;
+        }
+        jp = getjobpid(jobs,pid);
+        if (jp==NULL) {
+            printf("(%d): No such process\n", pid);
+            return;
+        }
+    }
+    
 
     if (!strcmp(argv[0],"bg")) { 
         sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
