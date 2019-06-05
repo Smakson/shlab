@@ -1,0 +1,7 @@
+#!/bin/sh
+
+for i in {01..16}
+do
+    ./sdriver.pl -t trace$i.txt -s ./tsh
+    echo ""
+done
