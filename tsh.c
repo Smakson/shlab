@@ -390,8 +390,17 @@ void sigchld_handler(int sig)
     int  status = 0;
     while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) {
 
-        if (!WIFSTOPPED(status)) {
+        if (WIFSTOPPED(status)) {
             sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+            printf("Job [%d] (%d) stopped by signal %d\n", pid2jid(pid), pid, sig);
+            struct job_t* fg = getjobpid((struct job_t *) jobs, pid);
+            fg->state = ST;
+            sigprocmask(SIG_SETMASK, &prev_all, NULL);
+        }
+
+        else {
+            sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+            printf("Job [%d] (%d) terminated by signal %d\n", pid2jid(pid), pid, sig);
             deletejob((struct job_t *) jobs, pid);
             sigprocmask(SIG_SETMASK, &prev_all, NULL);
         }
@@ -409,12 +418,6 @@ void sigint_handler(int sig)
     int olderrno = errno;
     pid_t pid = fgpid((struct job_t *) jobs);
     if (pid) {
-        sigset_t mask_all, prev_all;
-        sigfillset(&mask_all);
-        sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
-        printf("Job [%d] (%d) terminated by signal %d\n", pid2jid(pid), pid, sig);
-        deletejob((struct job_t *) jobs, pid);
-        sigprocmask(SIG_SETMASK, &prev_all, NULL);
         kill(-pid, sig);
     }
     errno = olderrno;
@@ -429,13 +432,6 @@ void sigtstp_handler(int sig)
     int olderrno = errno;
     pid_t pid = fgpid((struct job_t *) &jobs);
     if (pid) {
-        sigset_t mask_all, prev_all;
-        sigfillset(&mask_all);
-        sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
-        struct job_t* fg = getjobpid((struct job_t *) jobs, pid);
-        fg->state = ST;
-        printf("Job [%d] (%d) stopped by signal %d\n", pid2jid(pid), pid, sig);
-        sigprocmask(SIG_SETMASK, &prev_all, NULL);
         kill(-pid, sig);
     }
     errno = olderrno;
