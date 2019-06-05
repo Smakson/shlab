@@ -1,7 +1,9 @@
-#!/bin/sh
+#!/bin/bash
 
 for i in {01..16}
 do
-    ./sdriver.pl -t trace$i.txt -s ./tsh
-    echo ""
+    echo '[+] test'$i
+    diff \
+        <(./sdriver.pl -t trace$i.txt -s ./tsh) \
+        <(./sdriver.pl -t trace$i.txt -s ./tshref)
 done
