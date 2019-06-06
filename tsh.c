@@ -392,18 +392,25 @@ void sigchld_handler(int sig)
 
         if (WIFSTOPPED(status)) {
             sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
-            printf("Job [%d] (%d) stopped by signal %d\n", pid2jid(pid), pid, sig);
+            printf("Job [%d] (%d) stopped by signal %d\n", pid2jid(pid), pid, WSTOPSIG(status));
             struct job_t* fg = getjobpid((struct job_t *) jobs, pid);
             fg->state = ST;
             sigprocmask(SIG_SETMASK, &prev_all, NULL);
         }
 
-        else {
+        else if (WIFEXITED(status)) {
             sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
-            printf("Job [%d] (%d) terminated by signal %d\n", pid2jid(pid), pid, sig);
             deletejob((struct job_t *) jobs, pid);
             sigprocmask(SIG_SETMASK, &prev_all, NULL);
         }
+
+        else if (WIFSIGNALED(status)){
+            sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+            printf("Job [%d] (%d) terminated by signal %d\n", pid2jid(pid), pid, WTERMSIG(status));
+            deletejob((struct job_t *) jobs, pid);
+            sigprocmask(SIG_SETMASK, &prev_all, NULL);
+        }
+
    }
     errno = olderrno;
 }

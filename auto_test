@@ -1,0 +1,14 @@
+#!/bin/bash
+
+#make 1>/dev/null
+make
+
+ntest=$1
+
+echo "[+] Output using tsh"
+make "test$ntest"
+
+echo "______________________________________________"
+
+echo "[+] Output using tshref"
+make "rtest$ntest"
